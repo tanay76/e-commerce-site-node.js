@@ -1,0 +1,87 @@
+<%- include('../includes/head.ejs') %>
+    <link rel="stylesheet" href="/css/forms.css">
+    <link rel="stylesheet" href="/css/product.css">
+</head>
+
+<body>
+   <%- include('../includes/navigation.ejs') %>
+
+    <main>
+        <% if (errorMessage) { %>
+            <div class="user-message user-message--error"><%= errorMessage %></div>
+        <% } %>
+        <form class="product-form" action="/admin/<% if (editing) { %>edit-product<% } else { %>add-product<% } %>" method="POST" enctype="multipart/form-data" data-validation='<% if (editing) { %> {"title":true,"image":true,"price":true,"description":true} <% } else { %> {"title":false,"image":false,"price":false,"description":false} <% } %>'>
+            <div class="form-control">
+                <label for="title">Title</label>
+                <input
+                    class="<%= validationErrors.find(e => e.param === 'title') ? 'invalid':'' %>" 
+                    type="text" 
+                    name="title" 
+                    id="title"
+                    onblur="onBlurTitle(this)"
+                    onfocus="onFocusOtherFields()"
+                    oninput="onChangeTitle(this)"
+                    value="<% if (editing || hasError) { %><%= product.title %><% } %>">
+                <div class="error-space"></div>
+            </div>
+            <!-- <div class="form-control">
+                <label for="imageUrl">Image URL</label>
+                <input
+                    class="<%= validationErrors.find(e => e.param === 'imageUrl') ? 'invalid':'' %>" 
+                    type="text" 
+                    name="imageUrl" 
+                    id="imageUrl" 
+                    value="<% if (editing || hasError) { %><%= product.imageUrl %><% } %>">
+            </div> -->
+            <div class="form-control">
+                <label for="image">Image</label>
+                <input 
+                    type="file" 
+                    name="image" 
+                    id="image"
+                    data-on-focus="<%= editing ? 'true' : 'false'%>"
+                    onfocus="onFocusImage(this)"
+                    onchange="onChangeImage(this)">
+                <div class="error-space"></div>
+            </div>
+            <div class="form-control">
+                <label for="price">Price</label>
+                <input 
+                    class="<%= validationErrors.find(e => e.param === 'price') ? 'invalid':'' %>"
+                    type="number" 
+                    name="price" 
+                    id="price" 
+                    step="0.01"
+                    onblur="onBlurPrice(this)"
+                    onfocus="onFocusOtherFields()"
+                    oninput="onChangePrice(this)"
+                    value="<% if (editing || hasError) { %><%= product.price %><% } %>">
+                <div class="error-space"></div>
+            </div>
+            <div class="form-control">
+                <label for="description">Description</label>
+                <textarea
+                    class="<%= validationErrors.find(e => e.param === 'email') ? 'invalid':'' %>" 
+                    name="description" 
+                    id="description"
+                    maxlength="400" 
+                    rows="5"
+                    oninput="onChangeDescription(this)"
+                    onfocus="onFocusOtherFields()"><% if (editing || hasError) { %><%= product.description %><% } %></textarea>
+                <div class="description-hint" id="description-hint-text"><span>At least 5 letters</span><span id="word-limit">0/400</span></div>
+            </div>
+            <% if (editing) { %>
+                <input type="hidden" id="productId" value="<%= product._id %>" name="productId">
+            <% } %>
+
+            <input type="hidden" id="csrf" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" id="ok-error" name="okError" value="false">
+            <% if (editing) { %>
+                <button class="btn" id="submit" type="submit">Update Product</button>
+            <% } else { %> 
+                <button class="btn btn--inactive" id="submit" type="button">Add Product</button>
+            <% } %>
+            <!-- <button class="btn btn--inactive" id="submit" type="button"><% if (editing) { %>Update Product<% } else { %>Add Product<% } %></button> -->
+        </form>
+    </main>
+<%- include('../includes/end.ejs') %>
