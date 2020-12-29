@@ -1,2 +1,4 @@
 node_modules
 .env
+Paytm/config.js
+data/invoices

@@ -1,0 +1,27 @@
+<%- include('../includes/head.ejs') %>
+    </head>
+
+    <body>
+      <main>
+        <div class="centered">
+          <% if (txnStatus == 'TXN_FAILURE') { %>
+            <h1>Your Payment Failed!</h1>
+            <p>Your payment for <strong>ORDER ID: <%= orderId %></strong> has failed unfortunately.</p>
+            <p>Your <strong>Transaction Id:</strong> was <strong><%= txnId %>.</strong></p>
+            <p>Your <strong>Bank Name:</strong> was <strong><%= bankName %>.</strong></p>
+            <p>Reason for the failure is: <strong><%= msg %></strong></p>
+            <div class="centered">
+              <h3>In order to Retry</h3>
+              <a class="btn" href="/orders">Go To Order</a>
+            </div>
+          <% } else if (txnStatus == 'TXN_SUCCESS') { %>
+            <h1>Your Payment is Successful!</h1>
+            <div class="centered">
+              <h3>In order to collect Invoice</h3>
+              <a class="btn" href="/orders">Go To Order</a>
+            </div>
+          <% } %>
+        </div>
+      </main>
+      
+    <%- include('../includes/end.ejs') %>

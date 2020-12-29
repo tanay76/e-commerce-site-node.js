@@ -32,7 +32,11 @@
     "mysql2": "^2.2.5",
     "nodemailer": "^6.4.16",
     "nodemailer-sendgrid-transport": "^0.2.0",
+    "paytm-pg-node-sdk": "^1.0.4",
     "pdfkit": "^0.11.0",
+    "qs": "^6.9.4",
+    "query-string": "^6.13.7",
+    "request": "^2.88.2",
     "sequelize": "^6.3.5"
   }
 }

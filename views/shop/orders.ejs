@@ -11,16 +11,70 @@
                 </div>
             <% } else { %>
                 <ul class="orders">
+                    <h1>My Pending Orders:-</h1>
                     <% orders.forEach(order => { %>
-                        <li class="orders__item">
-                            <h1>Order - # <%= order._id %> - <a href="/orders/<%= order._id %>">Invoice</a></h1>
-                            <ul class="orders__products">
-                                <% order.products.forEach(p => { %>
-                                    <li class="orders__products-item"><%= p.product.title %> (<%= p.quantity %>)</li>
-                                <% }); %>
-                            </ul>
-                        </li>
-                    <% }); %>
+                        <% if (order.status === 'pending' && order.pod == false && order.deleted == false) { %>
+                            <li class="orders__item">
+                                <h1>Order - # <%= order._id %>--><span>Total: &#8377; <%= totalSum %></span></h1>
+                                <form action="/complete" method="POST">
+                                <% if (payList.length > 0) { %>
+                                    <input type="hidden" name="amount" value="<%= payment.txnAmt %>">
+                                    <input type="hidden" name="orderId" value="<%= payment.orderId %>">
+                                    <input type="hidden" name="userId" value="<%= order.user.userId %>">
+                                    <input type="hidden" name="transId" value="<%= payment.txnId %>">
+                                    <input type="hidden" name="transId" value="<%= payment.txnId %>">
+                                    <input type="hidden" name="bankName" value="<%= payment.bankName %>">
+                                <% } else { %>
+                                    <input type="hidden" name="orderId" value="<%= order._id %>">
+                                    <input type="hidden" name="userId" value="<%= order.user.userId %>">
+                                    <input type="hidden" name="amount" value="<%= totalSum %>">
+                                <% } %>
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>"> 
+                                    <button class="btn" type="submit">Complete It</button>
+                                </form>
+                                <a class="btn" href="/payOnDelv/<%= order._id %>">Pay On Delivery</a>
+                                <a class="btn danger" href="/delete-order/<%= order._id %>">Delete It</a>
+                                <ul class="orders__products">
+                                    <% order.products.forEach(p => { %>
+                                        <li class="orders__products-item"><%= p.product.title %>
+                                            (<%= p.quantity %>)</li>
+                                        <li><input type="hidden" name="amount" value="<%= totalSum %>"></li>
+                                    <% }) %>
+                                </ul>
+                            </li>
+                        <% } %>
+                    <% }) %> 
+                </ul>
+                <br>
+                <hr>
+                <br>
+                <ul class="orders">
+                    <h1>My Completed Orders:-</h1>
+                    <% orders.forEach(order => { %>
+                        <% if (order.status === 'successful' && order.deleted == false) { %>
+                            <li class="orders__item">
+                                <h1>Order - # <%= order._id %> - <a href="/orders/<%= order._id %>">Invoice</a> (Payment Done) <a class="btn danger" href="/delete-order/<%= order._id %>">Delete It</a></h1>
+                                <ul class="orders__products">
+                                    <% order.products.forEach(p => { %>
+                                        <li class="orders__products-item"><%= p.product.title %>
+                                            (<%= p.quantity %>)</li>
+                                        <li><input type="hidden" name="amount" value="<%= totalSum %>"></li>
+                                    <% }) %>
+                                </ul>
+                            </li>
+                        <% } else if (order.pod == true && order.deleted == false) { %>
+                            <li class="orders__item">
+                                <h1>Order - # <%= order._id %> - <a href="/orders/<%= order._id %>">Invoice</a> (Pay on Delivery) <a class="btn danger" href="/delete-order/<%= order._id %>">Delete It</a></h1>
+                                <ul class="orders__products">
+                                    <% order.products.forEach(p => { %>
+                                        <li class="orders__products-item"><%= p.product.title %>
+                                            (<%= p.quantity %>)</li>
+                                        <li><input type="hidden" name="amount" value="<%= totalSum %>"></li>
+                                    <% }) %>
+                                </ul>
+                            </li>
+                        <% } %>
+                    <% }) %> 
                 </ul>
             <% } %>
         </main>

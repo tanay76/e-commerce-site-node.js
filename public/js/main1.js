@@ -1,3 +1,5 @@
+// require('dotenv').config();
+
 // $(function() {
 //   $('#ok_btn').on('click', function() {
 //     $('.user-message--success').css('display', 'none');
@@ -474,3 +476,14 @@ const onChangeDescription = (element) => {
   button.className = 'btn';
   button.removeAttribute('type');
 };
+//======================================PAYTM========================================
+// For Staging 
+// var environment = Paytm.LibraryConstants.STAGING_ENVIRONMENT;
+
+// For Production 
+// var environment = Paytm.LibraryConstants.PRODUCTION_ENVIRONMENT;
+
+// Find your mid, key, website in your Paytm Dashboard at https://dashboard.paytm.com/next/apikeys 
+// var mid = process.env.paytm_mid;
+// var key = process.env.paytm_merchant_key;
+// var website = "WEBSTAGING";

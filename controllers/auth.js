@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-require('dotenv').config()
+require('dotenv').config();
 const chalk = require('chalk');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
@@ -7,7 +7,7 @@ const nodemailer = require('nodemailer');
 const { validationResult } = require('express-validator'); // Destructuring used
 
 const User = require('../models/user');
-const { json } = require('body-parser');
+// const { json } = require('body-parser');
 
 // const transporter = nodemailer.createTransport(sendgridTransport({
 //   auth: {
@@ -32,23 +32,9 @@ exports.getLogin = (req, res, next) => {
 };
 
 exports.getSignup = (req, res, next) => {
-  let message1 = req.flash('error');
-  let message2 = req.flash('success');
-  if (message1.length > 0) {
-    message1 = message1[0];
-  } else {
-    message1 = null;
-  }
-  if (message2.length > 0) {
-    message2 = message2[0];
-  } else {
-    message2 = null;
-  }
   res.render('auth/signup', {
     pageTitle: 'Sign Up',
     path: '/signup',
-    errorMessage: message1,
-    successMessage: message2,
     oldInput: {
       email: '',
       password: '',
@@ -141,12 +127,14 @@ exports.postSignup = (req, res, next) => {
 };
 
 exports.postLogin = (req, res, next) => {
+  let authenticatedUser;
   const userEmail = req.body.email;
   const userPassword = req.body.password;
   const noError = req.body.noError;
   if (noError !== 'false') {
     req.session.isLoggedIn = true;
     req.session.user = JSON.parse(noError);
+    authenticatedUser = JSON.parse(noError);
     req.session.save();
     req.flash('success', 'Successfully logged in!');
     return res.redirect('/');

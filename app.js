@@ -14,6 +14,7 @@ const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const authRoutes = require('./routes/auth');
 const errorController = require('./controllers/error');
+const paytmRoutes = require('./routes/paytm');
 const User = require('./models/user');
 
 const app = express();
@@ -58,12 +59,14 @@ app.use(
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
+app.use('/paytm', paytmRoutes); //this is declared before session & csrf middlewares because this  route will else get disturbed by the csrfToken and new sessions sent by Paytm.
+
 app.use(
     session({
-        secret: 'My Secret Key', 
-        resave: false, 
-        saveUninitialized: false, 
-        store:store
+        secret: process.env.sessionSecret,   // You can write any random String of your choice
+        resave: false,                      // and more complex more better and you should keep it
+        saveUninitialized: false,           // in .env file before uploading it to Github
+        store:store,
     })
 ); 
 
@@ -73,30 +76,35 @@ app.use(flash());                                                               
 app.use(csrfProtection);
 
 app.use((req, res, next) => {
-    // console.log('isAuthenticated: ',req.session.isLoggedIn);
-    res.locals.isAuthenticated = req.session.isLoggedIn;  // res.locals allows us to set loacl
+    res.locals.isAuthenticated = req.session.isLoggedIn;
+                                        // console.log('isAuthenticated: ',req.session.isLoggedIn);
+                                        // res.locals.isAuthenticated = req.session.isLoggedIn;  // res.locals allows us to set loacl
     res.locals.csrfToken = req.csrfToken();      // variables that are passed into the views, local
     next();                                  // simply becuse they exist in only int the views which
 });                                             // are rendered.                //   🔼
                                                                                  //  🔼
 app.use((req, res, next) => {    // ------write this code after defining session here🔼, otherwise
-    if (!req.session.user) {     // this command will not be able to recognize the session in the
-        return next();           // req.session here
+    
+    if (!req.session.user) {  // this command will not be able to recognize the session in the
+        next();                 // req.session here
+    } else if (req.session.user) {
+        User.findById(req.session.user._id)
+        .then(user => {
+            // throw new Error('Dummy');
+            if (!user) {
+                return next();
+            }
+            req.user = user;
+            // console.log('USER: ', req.user);
+            next();
+        })
+        .catch(err => {
+            return next(new Error(err));
+        });
     }
-    User.findById(req.session.user._id)
-    .then(user => {
-        // throw new Error('Dummy');
-        if (!user) {
-            return next();
-        }
-        req.user = user;
-        next();
-    })
-    .catch(err => {
-        return next(new Error(err));
-    });
 });
 
+// app.post('/callback', shopController.postCallback);
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
@@ -105,13 +113,13 @@ app.get('/500', errorController.get500Page);
 
 app.use(errorController.get404Page);
 
-app.use((error, req, res, next) => {
-    res.status(500).render('500', {
-        pageTitle:'Error Page', 
-        path:'/500',
-        // isAuthenticated: req.session.isLoggedIn
-    });
-});
+// app.use((error, req, res, next) => {
+//     res.status(500).render('500', {
+//         pageTitle:'Error Page', 
+//         path:'/500',
+//         // isAuthenticated: req.session.isLoggedIn
+//     });
+// });
 
 mongoose.connect(MONGODB_URI)
 .then(result => {
