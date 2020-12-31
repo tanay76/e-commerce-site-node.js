@@ -22,7 +22,8 @@ const orderSchema = new Schema({
   txnDate: {type: String},
   bankName: {type: String},
   bankTxnId: {type: String},
-  deleted: {type: Boolean, required: true}
+  deleted: {type: Boolean, required: true},
+  payment_tried_but_failed: {type: Boolean}
 });
 
 module.exports = mongoose.model('Order', orderSchema);

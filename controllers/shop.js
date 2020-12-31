@@ -171,118 +171,7 @@ exports.getCheckout = (req, res, next) => {
     });
 };
 
-exports.postProceed = (req, res, next) => {
-  let order;
-  let productIds = [];
-  req.user
-    .populate('cart.items.productId')
-    .execPopulate()
-    .then((_user) => {
-      const products = _user.cart.items.map((i) => {
-        return { product: { ...i.productId._doc }, quantity: i.quantity };
-      });
-      const user = { userId: req.user._id, email: req.user.email };
-      order = new Order({ products: products, user: user, status: 'pending', pod: false, deleted: false });
-      return order.save();
-    })
-    .then(order => {
-      req.user.clearCart();
-      //Handle order creation and initiate transaction here
-
-      // const orderId = 'TEST_' + new Date().getTime();
-      const orderId = order._id.toString();
-
-      var paytmParams = {};
-
-      paytmParams.body = {
-        requestType: 'Payment',
-        mid: PaytmConfig.PaytmConfig.mid,
-        websiteName: PaytmConfig.PaytmConfig.website,
-        channelId: 'WEB',
-        orderId: orderId,
-        callbackUrl: 'http://localhost:3000/paytm/callback',
-        txnAmount: {
-          value: req.body.amount,
-          currency: 'INR',
-        },
-        userInfo: {
-          custId: req.user._id.toString(),
-        },
-      };
-      // console.log('HEY:NAI ');
-
-      PaytmChecksum.generateSignature(
-        JSON.stringify(paytmParams.body),
-        PaytmConfig.PaytmConfig.key
-      ).then(function (checksum) {
-        paytmParams.head = {
-          signature: checksum,
-        };
-
-        var post_data = JSON.stringify(paytmParams);
-
-        var options = {
-          /* for Staging */
-          hostname: 'securegw-stage.paytm.in',
-
-          /* for Production */
-          // hostname: 'securegw.paytm.in',
-
-          port: 443,
-          path: `/theia/api/v1/initiateTransaction?mid=${PaytmConfig.PaytmConfig.mid}&orderId=${orderId}`,
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': post_data.length,
-          },
-        };
-
-        var response = '';
-        var post_req = https.request(options, function (post_res) {
-          post_res.on('data', function (chunk) {
-            response += chunk;
-          });
-
-          post_res.on('end', function () {
-            response = JSON.parse(response);
-            // console.log('txnToken:', response);
-
-            // res.cookie('cookieName', undefined, { maxAge: 900000, httpsOnly: true });
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.write(`<html>
-                <head>
-                    <title>Show Payment Page</title>
-                </head>
-                <body>
-                    <center>
-                        <h1>Please do not refresh this page...</h1>
-                    </center>
-                    <form method="post" action="https://securegw-stage.paytm.in/theia/api/v1/showPaymentPage?mid=${PaytmConfig.PaytmConfig.mid}&orderId=${orderId}" name="paytm">
-                        <table border="1">
-                            <tbody>
-                                <input type="hidden" name="mid" value="${PaytmConfig.PaytmConfig.mid}">
-                                    <input type="hidden" name="orderId" value="${orderId}">
-                                    <input type="hidden" name="txnToken" value="${response.body.txnToken}">
-                          </tbody>
-                      </table>
-                                    <script type="text/javascript"> document.paytm.submit(); </script>
-                    </form>
-                </body>
-              </html>`);
-            res.end();
-          });
-        });
-
-        post_req.write(post_data);
-        post_req.end();
-      });
-    });
-};
-
-exports.postComplete = (req, res, next) => {
-
-  const orderId = '@'+req.body.orderId.toString();
-
+const connectToPaytm = (res, orderId, amt, userId) => {
   var paytmParams = {};
 
   paytmParams.body = {
@@ -293,18 +182,15 @@ exports.postComplete = (req, res, next) => {
     orderId: orderId,
     callbackUrl: 'http://localhost:3000/paytm/callback',
     txnAmount: {
-      value: req.body.amount,
+      value: amt,
       currency: 'INR',
     },
     userInfo: {
-      custId: req.body.userId.toString(),
+      custId: userId,
     },
   };
+  // console.log('HEY:NAI ');
 
-  /*
-   * Generate checksum by parameters we have in body
-   * Find your Merchant Key in your Paytm Dashboard at https://dashboard.paytm.com/next/apikeys
-   */
   PaytmChecksum.generateSignature(
     JSON.stringify(paytmParams.body),
     PaytmConfig.PaytmConfig.key
@@ -339,37 +225,90 @@ exports.postComplete = (req, res, next) => {
 
       post_res.on('end', function () {
         response = JSON.parse(response);
-        // console.log('txnToken: ', response);
+        // console.log('txnToken:', response);
 
         // res.cookie('cookieName', undefined, { maxAge: 900000, httpsOnly: true });
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.write(`<html>
-                <head>
-                    <title>Show Payment Page</title>
-                </head>
-                <body>
-                    <center>
-                        <h1>Please do not refresh this page...</h1>
-                    </center>
-                    <form method="post" action="https://securegw-stage.paytm.in/theia/api/v1/showPaymentPage?mid=${PaytmConfig.PaytmConfig.mid}&orderId=${orderId}" name="paytm">
-                    
-                        <table border="1">
-                          <tbody>
-                                <input type="hidden" name="mid" value="${PaytmConfig.PaytmConfig.mid}">
+            <head>
+                <title>Show Payment Page</title>
+            </head>
+            <body>
+                <center>
+                    <h1>Please do not refresh this page...</h1>
+                </center>
+                <form method="post" action="https://securegw-stage.paytm.in/theia/api/v1/showPaymentPage?mid=${PaytmConfig.PaytmConfig.mid}&orderId=${orderId}" name="paytm">
+                    <table border="1">
+                        <tbody>
+                            <input type="hidden" name="mid" value="${PaytmConfig.PaytmConfig.mid}">
                                 <input type="hidden" name="orderId" value="${orderId}">
                                 <input type="hidden" name="txnToken" value="${response.body.txnToken}">
-                          </tbody>
-                        </table>
-                                    <script type="text/javascript"> document.paytm.submit(); </script>
-                    </form>
-                </body>
-              </html>`);
+                      </tbody>
+                  </table>
+                                <script type="text/javascript"> document.paytm.submit(); </script>
+                </form>
+            </body>
+          </html>`);
         res.end();
       });
     });
+
     post_req.write(post_data);
     post_req.end();
   });
+};
+
+exports.postProceed = (req, res, next) => {
+  let order;
+  let productIds = [];
+  req.user
+    .populate('cart.items.productId')
+    .execPopulate()
+    .then((_user) => {
+      const products = _user.cart.items.map((i) => {
+        return { product: { ...i.productId._doc }, quantity: i.quantity };
+      });
+      const user = { userId: req.user._id, email: req.user.email };
+      order = new Order({ products: products, user: user, status: 'pending', pod: false, deleted: false });
+      return order.save();
+    })
+    .then(order => {
+      req.user.clearCart();
+      //Handle order creation and initiate transaction here
+
+      // const orderId = 'TEST_' + new Date().getTime();
+      const orderId = order._id.toString();
+      const amount = req.body.amount;
+      const userId = req.user._id.toString();
+
+      connectToPaytm(res, orderId, amount, userId);
+    });
+};
+
+exports.postComplete = (req, res, next) => {
+  let updatedOrder;
+  Order.findOne({_id: req.body.orderId})
+  .then(order => {
+    order.payment_tried_but_failed = true;
+    return order.save();
+  })
+  .then(order => {
+    if(order && order.user.userId == req.body.userId) {
+      updatedOrder = { ...order._doc };
+      delete updatedOrder._id;
+      delete updatedOrder.payment_tried_but_failed;
+      // console.log('Updated Order: ', updatedOrder);
+      updatedOrder = new Order({ ...updatedOrder });
+      return updatedOrder.save();
+    }
+  })
+  .then(result => {
+    const orderId = result._id.toString();
+    const amount = req.body.amount;
+    const userId = req.body.userId.toString();
+
+    connectToPaytm(res, orderId, amount, userId);
+  })
 };
 
 exports.getPayOnDelv = (req, res, next) => {
@@ -407,33 +346,33 @@ exports.getPayOnDelv = (req, res, next) => {
 exports.getOrders = (req, res, next) => {
   let updatedOrders = [];
   let payments_list = [];
+  let totalPrice = 0;
   Order.find({'user.userId': req.user._id}).then((orders) => {
-    let totalPrice = 0;
     if (orders.length > 0) {
       orders.forEach((order) => {
-        if (order.deleted == false) {
+        if (order.deleted == false && !order.payment_tried_but_failed) {
           updatedOrders.push(order);
         }
-        order.products.forEach((prod) => {
-          totalPrice += prod.quantity * prod.product.price;
-        })
+        updatedOrders.forEach(order => {
+          order.products.forEach((prod) => {
+            totalPrice += prod.quantity * prod.product.price;
+          });
+        });
         Payment.find({'userId': order.user.userId})
         .then(payment => {
-        payments_list.push(...payment);
-        })
-        .then(result => {
-          res.render('shop/orders', {
-            pageTitle: 'Your Orders',
-            path: '/orders',
-            orders: updatedOrders,
-            payList: payments_list,
-            payment: payments_list[payments_list.length - 1],
-            totalSum: totalPrice.toFixed(2),
-          })
+          payments_list.push(...payment);
         })
       });
+      return res.render('shop/orders', {
+        pageTitle: 'Your Orders',
+        path: '/orders',
+        orders: updatedOrders,
+        payList: payments_list,
+        payment: payments_list[payments_list.length - 1],
+        totalSum: totalPrice.toFixed(2),
+      })
     } else {
-      res.render('shop/orders', {
+      return res.render('shop/orders', {
         pageTitle: 'Your Orders',
         path: '/orders',
         orders: orders,

@@ -24,8 +24,8 @@ exports.postCallback = (req, res, next) => {
   const trans_bank_trans_id = req.body.BANKTXNID;
   const trans_bank_name = req.body.BANKNAME;
   const trans_checksumHash = req.body.CHECKSUMHASH;
-  console.log('Transaction Date: ',trans_date);
-  Order.findOne({_id: trans_orderId.split('@').join('')}).then(order => {
+  // console.log('Transaction Date: ',trans_date);
+  Order.findOne({_id: trans_orderId}).then(order => {
     const userId = order.user.userId;
     payment = new Payment({
       userId: userId,
@@ -51,9 +51,9 @@ exports.postCallback = (req, res, next) => {
       order.bankName = trans_bank_name;
       order.bankTxnId = trans_bank_trans_id;
       order.save();
-      console.log('Product: ', order.products.product);
+      // console.log('Product: ', order.products.product);
     }
-    console.log('USER_ID: ', userId);
+    // console.log('USER_ID: ', userId);
     return payment.save()
     .then(result => {
       res.render('shop/payment-status', {
